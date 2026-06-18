@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI图片修复工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        /* API密钥配置 */
+        .api-config {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .api-config h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .api-config .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .api-config input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .api-config input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .api-config .hint {
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .api-config .hint a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 16px;
+            padding: 60px 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f0ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        /* 功能选择 */
+        .function-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .function-card {
+            flex: 1;
+            min-width: 250px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .function-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .function-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+        }
+
+        .function-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .function-card p {
+            color: #6c757d;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        /* AI修图输入框 */
+        .ai-prompt-section {
+            display: none;
+            margin-bottom: 30px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .ai-prompt-section.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ai-prompt-section label {
+            display: block;
+            margin-bottom: 10px;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .ai-prompt-section textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s;
+        }
+
+        .ai-prompt-section textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ai-prompt-section .examples {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ai-prompt-section .example-tag {
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-prompt-section .example-tag:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 图片预览区 */
+        .preview-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .preview-section.show {
+            display: block;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .preview-box {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .preview-box h4 {
+            padding: 15px;
+            background: #e9ecef;
+            color: #495057;
+            text-align: center;
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            background: white;
+        }
+
+        /* 批量上传区域 */
+        .batch-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .batch-section.show {
+            display: block;
+        }
+
+        .batch-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .batch-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .batch-item img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .batch-item .name {
+            flex: 1;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .batch-item .status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .batch-item .status.processing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .batch-item .status.done {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .batch-item .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* 操作按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* 进度条 */
+        .progress-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .progress-section.show {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #6c757d;
+        }
+
+        /* 历史记录 */
+        .history-section {
+            margin-top: 40px;
+            border-top: 2px solid #e9ecef;
+            padding-top: 30px;
+        }
+
+        .history-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .history-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .history-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .history-item .info {
+            padding: 10px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .history-item .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+        }
+
+        .history-item:hover .delete-btn {
+            display: block;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 错误提示 */
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* 成功提示 */
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .function-selector {
+                flex-direction: column;
+            }
+
+            .preview-container {
+                flex-direction: column;
+            }
+
+            .preview-box {
+                max-width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* 提示框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #495057;
+        }
+
+        .modal-content p {
+            color: #6c757d;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .modal-content .close-btn {
+            margin-top: 20px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 AI图片修复工具</h1>
+            <p>高清修复 + 智能修图，让照片焕发新生</p>
+        </header>
+
+        <div class="main-content">
+            <!-- API配置 -->
+            <div class="api-config">
+                <h3>🔑 百度AI密钥配置</h3>
+                <div class="input-group">
+                    <input type="text" id="apiKey" placeholder="API Key" />
+                    <input type="password" id="secretKey" placeholder="Secret Key" />
+                </div>
+                <p class="hint">
+                    首次使用请先<a href="javascript:void(0)" onclick="showHelp()">注册百度AI账号</a>获取密钥
+                </p>
+            </div>
+
+            <!-- 错误提示 -->
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- 上传区域 -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">点击或拖拽上传图片</div>
+                <div class="upload-hint">支持 JPG、PNG、WebP 格式，最大 4MB</div>
+            </div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple style="display: none" />
+
+            <!-- 功能选择 -->
+            <div class="function-selector">
+                <div class="function-card active" data-function="enhance" onclick="selectFunction('enhance')">
+                    <h3>✨ 高清修复</h3>
+                    <p>智能增强图片清晰度，让模糊照片变得清晰锐利</p>
+                </div>
+                <div class="function-card" data-function="edit" onclick="selectFunction('edit')">
+                    <h3>🖌️ AI智能修图</h3>
+                    <p>输入文字描述，AI帮你自动修改图片内容</p>
+                </div>
+            </div>
+
+            <!-- AI修图输入框 -->
+            <div class="ai-prompt-section" id="aiPromptSection">
+                <label>描述你想做的修改：</label>
+                <textarea id="aiPrompt" placeholder="例如：把天空变成晚霞、让人物微笑、添加一朵花..."></textarea>
+                <div class="examples">
+                    <span class="example-tag" onclick="setPrompt('把天空变成晚霞')">🌅 晚霞天空</span>
+                    <span class="example-tag" onclick="setPrompt('让人物微笑')">😊 微笑</span>
+                    <span class="example-tag" onclick="setPrompt('添加一些花瓣')">🌸 添加花瓣</span>
+                    <span class="example-tag" onclick="setPrompt('变成油画风格')">🎨 油画风格</span>
+                </div>
+            </div>
+
+            <!-- 图片预览 -->
+            <div class="preview-section" id="previewSection">
+                <div class="preview-container">
+                    <div class="preview-box">
+                        <h4>📷 原图</h4>
+                        <img id="originalPreview" src="" alt="原图预览" />
+                    </div>
+                    <div class="preview-box">
+                        <h4>✨ 处理后</h4>
+                        <img id="resultPreview" src="" alt="处理后预览" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 批量上传列表 -->
+            <div class="batch-section" id="batchSection">
+                <h4 style="margin-bottom: 15px; color: #495057;">📋 批量处理列表</h4>
+                <div class="batch-list" id="batchList"></div>
+            </div>
+
+            <!-- 加载动画 -->
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p>AI正在处理中，请稍候...</p>
+            </div>
+
+            <!-- 进度条 -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                </div>
+                <p class="progress-text" id="progressText">准备中...</p>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="processBtn" onclick="processImage()">
+                    🚀 开始处理
+                </button>
+                <button class="btn btn-success" id="downloadBtn" onclick="downloadResult()" style="display: none;">
+                    💾 下载图片
+                </button>
+                <button class="btn btn-secondary" id="batchBtn" onclick="processBatch()" style="display: none;">
+                    📦 批量处理
+                </button>
+            </div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="main-content">
+            <div class="history-section">
+                <h2>📚 历史记录</h2>
+                <div class="history-grid" id="historyGrid">
+                    <p style="color: #6c757d; grid-column: 1/-1; text-align: center;">暂无历史记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帮助弹窗 -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <h3>📖 如何获取百度AI密钥</h3>
+            <p><strong>步骤1：</strong>访问 <a href="https://ai.baidu.com" target="_blank">百度AI开放平台</a></p>
+            <p><strong>步骤2：</strong>用手机号注册百度账号并登录</p>
+            <p><strong>步骤3：</strong>进入控制台，点击"创建应用"</p>
+            <p><strong>步骤4：</strong>填写应用信息（随便填就行）</p>
+            <p><strong>步骤5：</strong>创建成功后，你会看到 API Key 和 Secret Key</p>
+            <p><strong>步骤6：</strong>把这两个密钥复制到上面的输入框中</p>
+            <p style="background: #fff3cd; padding: 10px; border-radius: 8px; color: #856404;">
+                💡 提示：新用户有大量免费调用次数，足够日常使用！
+            </p>
+            <button class="btn btn-primary close-btn" onclick="closeHelp()">我知道了</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentFunction = 'enhance';
+        let originalFile = null;
+        let originalBase64 = null;
+        let resultBase64 = null;
+        let batchFiles = [];
+        let accessToken = null;
+
+        // DOM元素
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const apiKeyInput = document.getElementById('apiKey');
+        const secretKeyInput = document.getElementById('secretKey');
+        const aiPromptSection = document.getElementById('aiPromptSection');
+        const previewSection = document.getElementById('previewSection');
+        const batchSection = document.getElementById('batchSection');
+        const loadingSection = document.getElementById('loadingSection');
+        const progressSection = document.getElementById('progressSection');
+        const processBtn = document.getElementById('processBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const batchBtn = document.getElementById('batchBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedKeys();
+            loadHistory();
+            setupEventListeners();
+        });
+
+        // 加载保存的密钥
+        function loadSavedKeys() {
+            const savedApiKey = localStorage.getItem('baidu_api_key');
+            const savedSecretKey = localStorage.getItem('baidu_secret_key');
+            if (savedApiKey) apiKeyInput.value = savedApiKey;
+            if (savedSecretKey) secretKeyInput.value = savedSecretKey;
+        }
+
+        // 保存密钥
+        function saveKeys() {
+            if (apiKeyInput.value && secretKeyInput.value) {
+                localStorage.setItem('baidu_api_key', apiKeyInput.value);
+                localStorage.setItem('baidu_secret_key', secretKeyInput.value);
+            }
+        }
+
+        // 设置事件监听
+        function setupEventListeners() {
+            // 上传区域点击
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            // 拖拽上传
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            // 文件选择
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            // 密钥输入保存
+            apiKeyInput.addEventListener('change', saveKeys);
+            secretKeyInput.addEventListener('change', saveKeys);
+        }
+
+        // 处理上传的文件
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            // 验证文件
+            const validFiles = Array.from(files).filter(file => {
+                if (file.size > 4 * 1024 * 1024) {
+                    showError(`${file.name} 超过4MB限制`);
+                    return false;
+                }
+                if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                    showError(`${file.name} 格式不支持`);
+                    return false;
+                }
+                return true;
+            });
+
+            if (validFiles.length === 0) return;
+
+            if (validFiles.length === 1) {
+                // 单张图片
+                handleSingleFile(validFiles[0]);
+            } else {
+                // 多张图片 - 批量模式
+                handleBatchFiles(validFiles);
+            }
+        }
+
+        // 处理单张图片
+        function handleSingleFile(file) {
+            originalFile = file;
+            batchFiles = [];
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalBase64 = e.target.result;
+                document.getElementById('originalPreview').src = originalBase64;
+                document.getElementById('resultPreview').src = '';
+                previewSection.classList.add('show');
+                batchSection.classList.remove('show');
+                downloadBtn.style.display = 'none';
+                resultBase64 = null;
+                hideError();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 处理批量文件
+        function handleBatchFiles(files) {
+            batchFiles = files;
+            originalFile = null;
+            originalBase64 = null;
+
+            const batchList = document.getElementById('batchList');
+            batchList.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'batch-item';
+                item.innerHTML = `
+                    <img src="${URL.createObjectURL(file)}" alt="${file.name}" />
+                    <span class="name">${file.name}</span>
+                    <span class="status" id="status-${index}">等待处理</span>
+                `;
+                batchList.appendChild(item);
+            });
+
+            batchSection.classList.add('show');
+            previewSection.classList.remove('show');
+            batchBtn.style.display = 'inline-flex';
+            downloadBtn.style.display = 'none';
+        }
+
+        // 选择功能
+        function selectFunction(func) {
+            currentFunction = func;
+
+            // 更新UI
+            document.querySelectorAll('.function-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-function="${func}"]`).classList.add('active');
+
+            // 显示/隐藏AI修图输入框
+            if (func === 'edit') {
+                aiPromptSection.classList.add('show');
+            } else {
+                aiPromptSection.classList.remove('show');
+            }
+
+            hideError();
+        }
+
+        // 设置提示词
+        function setPrompt(text) {
+            document.getElementById('aiPrompt').value = text;
+        }
+
+        // 获取access_token
+        async function getAccessToken() {
+            const apiKey = apiKeyInput.value.trim();
+            const secretKey = secretKeyInput.value.trim();
+
+            if (!apiKey || !secretKey) {
+                throw new Error('请先输入百度AI密钥');
+            }
+
+            // 检查是否有缓存的token
+            const cached = localStorage.getItem('baidu_access_token');
+            const cachedTime = localStorage.getItem('baidu_token_time');
+
+            if (cached && cachedTime) {
+                const timeDiff = Date.now() - parseInt(cachedTime);
+                // token有效期30天，我们25天后刷新
+                if (timeDiff < 25 * 24 * 60 * 60 * 1000) {
+                    return cached;
+                }
+            }
+
+            const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`;
+
+            const response = await fetch(url, { method: 'POST' });
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(`密钥验证失败: ${data.error_description || data.error}`);
+            }
+
+            // 缓存token
+            localStorage.setItem('baidu_access_token', data.access_token);
+            localStorage.setItem('baidu_token_time', Date.now().toString());
+
+            return data.access_token;
+        }
+
+        // 处理图片
+        async function processImage() {
+            hideError();
+            hideSuccess();
+
+            // 验证输入
+            if (!originalFile && batchFiles.length === 0) {
+                showError('请先上传图片');
+                return;
+            }
+
+            if (currentFunction === 'edit') {
+                const prompt = document.getElementById('aiPrompt').value.trim();
+                if (!prompt) {
+                    showError('请输入修图描述');
+                    return;
+                }
+            }
+
+            showLoading();
+            processBtn.disabled = true;
+
+            try {
+                // 获取access_token
+                accessToken = await getAccessToken();
+
+                if (originalFile) {
+                    // 单张处理
+                    await processSingleImage();
+                } else {
+                    // 批量处理
+                    await processBatch();
+                }
+
+            } catch (error) {
+                showError(error.message || '处理失败，请重试');
+            } finally {
+                hideLoading();
+                processBtn.disabled = false;
+            }
+        }
+
+        // 处理单张图片
+        async function processSingleImage() {
+            const base64Data = originalBase64.split(',')[1];
+
+            let result;
+            if (currentFunction === 'enhance') {
+                result = await enhanceImage(base64Data);
+            } else {
+                const prompt = document.getElementById('aiPrompt').value.trim();
+                result = await editImage(base64Data, prompt);
+            }
+
+            resultBase64 = `data:image/png;base64,${result}`;
+            document.getElementById('resultPreview').src = resultBase64;
+            previewSection.classList.add('show');
+            downloadBtn.style.display = 'inline-flex';
+
+            // 保存到历史记录
+            saveToHistory(originalBase64, resultBase64, currentFunction);
+
+            showSuccess('处理完成！');
+        }
+
+        // 图像增强
+        async function enhanceImage(base64Data) {
+            const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_enhance?access_token=${accessToken}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `image=${encodeURIComponent(base64Data)}`
+            });
+
+            const data = await response.json();
+
+            if (data.error_code) {
+                throw new Error(`图像增强失败: ${data.error_msg}`);
+            }
+
+            return data.image;
+        }
+
+        // 图像编辑
+        async function editImage(base64Data, prompt) {
+            // 注意：百度AI的图像编辑API可能需要不同的端点
+            // 这里使用通用的图像处理API作为示例
+            // 实际使用时请参考百度AI官方文档
+
+            const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_edit?access_token=${accessToken}`;
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `image=${encodeURIComponent(base64Data)}&prompt=${encodeURIComponent(prompt)}`
+            });
+
+            const data = await response.json();
+
+            if (data.error_code) {
+                throw new Error(`图像编辑失败: ${data.error_msg}`);
+            }
+
+            return data.image;
+        }
+
+        // 批量处理
+        async function processBatch() {
+            if (batchFiles.length === 0) {
+                showError('没有可处理的图片');
+                return;
+            }
+
+            progressSection.classList.add('show');
+            batchBtn.style.display = 'none';
+
+            let successCount = 0;
+            const results = [];
+
+            for (let i = 0; i < batchFiles.length; i++) {
+                const file = batchFiles[i];
+                const statusEl = document.getElementById(`status-${i}`);
+
+                try {
+                    statusEl.textContent = '处理中...';
+                    statusEl.className = 'status processing';
+
+                    const base64Data = await fileToBase64(file);
+                    let result;
+
+                    if (currentFunction === 'enhance') {
+                        result = await enhanceImage(base64Data);
+                    } else {
+                        const prompt = document.getElementById('aiPrompt').value.trim();
+                        result = await editImage(base64Data, prompt);
+                    }
+
+                    results.push({
+                        original: `data:${file.type};base64,${base64Data}`,
+                        result: `data:image/png;base64,${result}`,
+                        name: file.name
+                    });
+
+                    statusEl.textContent = '✓ 完成';
+                    statusEl.className = 'status done';
+                    successCount++;
+
+                } catch (error) {
+                    statusEl.textContent = '✗ 失败';
+                    statusEl.className = 'status error';
+                    console.error(`处理 ${file.name} 失败:`, error);
+                }
+
+                // 更新进度
+                const progress = ((i + 1) / batchFiles.length * 100).toFixed(0);
+                document.getElementById('progressFill').style.width = `${progress}%`;
+                document.getElementById('progressFill').textContent = `${progress}%`;
+                document.getElementById('progressText').textContent = `已处理 ${i + 1}/${batchFiles.length} 张`;
+            }
+
+            // 批量下载
+            if (successCount > 0) {
+                downloadBatchResults(results);
+                saveBatchToHistory(results, currentFunction);
+                showSuccess(`批量处理完成！成功 ${successCount}/${batchFiles.length} 张`);
+            }
+
+            progressSection.classList.remove('show');
+        }
+
+        // 文件转base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 下载结果
+        function downloadResult() {
+            if (!resultBase64) {
+                showError('没有可下载的图片');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = resultBase64;
+            link.download = `enhanced_${originalFile.name}`;
+            link.click();
+        }
+
+        // 批量下载
+        function downloadBatchResults(results) {
+            results.forEach((item, index) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = item.result;
+                    link.download = `enhanced_${item.name}`;
+                    link.click();
+                }, index * 500); // 每隔500ms下载一个，避免浏览器阻止
+            });
+        }
+
+        // 保存到历史记录
+        function saveToHistory(original, result, functionType) {
+            const history = getHistory();
+            history.unshift({
+                original,
+                result,
+                functionType,
+                timestamp: Date.now()
+            });
+
+            // 只保留最近20条
+            if (history.length > 20) {
+                history.pop();
+            }
+
+            localStorage.setItem('photo_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        // 保存批量结果到历史记录
+        function saveBatchToHistory(results, functionType) {
+            const history = getHistory();
+            results.forEach(item => {
+                history.unshift({
+                    original: item.original,
+                    result: item.result,
+                    functionType,
+                    timestamp: Date.now()
+                });
+            });
+
+            if (history.length > 20) {
+                history.splice(20);
+            }
+
+            localStorage.setItem('photo_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        // 获取历史记录
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('photo_history') || '[]');
+            } catch {
+                return [];
+            }
+        }
+
+        // 加载历史记录
+        function loadHistory() {
+            const history = getHistory();
+            const grid = document.getElementById('historyGrid');
+
+            if (history.length === 0) {
+                grid.innerHTML = '<p style="color: #6c757d; grid-column: 1/-1; text-align: center;">暂无历史记录</p>';
+                return;
+            }
+
+            grid.innerHTML = history.map((item, index) => `
+                <div class="history-item" onclick="viewHistoryItem(${index})">
+                    <img src="${item.result}" alt="处理结果" />
+                    <div class="info">
+                        ${item.functionType === 'enhance' ? '✨ 高清修复' : '🖌️ AI修图'}<br>
+                        ${formatTime(item.timestamp)}
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteHistoryItem(${index})">×</button>
+                </div>
+            `).join('');
+        }
+
+        // 查看历史记录
+        function viewHistoryItem(index) {
+            const history = getHistory();
+            const item = history[index];
+            if (!item) return;
+
+            document.getElementById('originalPreview').src = item.original;
+            document.getElementById('resultPreview').src = item.result;
+            previewSection.classList.add('show');
+
+            resultBase64 = item.result;
+            downloadBtn.style.display = 'inline-flex';
+        }
+
+        // 删除历史记录
+        function deleteHistoryItem(index) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+
+            const history = getHistory();
+            history.splice(index, 1);
+            localStorage.setItem('photo_history', JSON.stringify(history));
+            loadHistory();
+        }
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+        }
+
+        // 显示/隐藏提示
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
+            successMessage.classList.remove('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        function showSuccess(msg) {
+            successMessage.textContent = msg;
+            successMessage.classList.add('show');
+            setTimeout(() => successMessage.classList.remove('show'), 3000);
+        }
+
+        function hideSuccess() {
+            successMessage.classList.remove('show');
+        }
+
+        function showLoading() {
+            loadingSection.classList.add('show');
+        }
+
+        function hideLoading() {
+            loadingSection.classList.remove('show');
+        }
+
+        // 帮助弹窗
+        function showHelp() {
+            document.getElementById('helpModal').classList.add('show');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
