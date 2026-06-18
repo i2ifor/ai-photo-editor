@@ -973,7 +973,7 @@
             throw new Error('所有代理都失败了，请检查网络连接');
         }
 
-        // 调用Replicate API
+        // 调用Replicate API（通过CORS代理）
         async function callReplicateAPI(modelVersion, input) {
             const apiKey = apiKeyInput.value.trim();
             if (!apiKey) {
@@ -981,7 +981,7 @@
             }
 
             // 创建预测
-            const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+            const createResponse = await fetchWithProxy('https://api.replicate.com/v1/predictions', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Token ${apiKey}`,
@@ -1005,7 +1005,7 @@
             while (result.status !== 'succeeded' && result.status !== 'failed') {
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                const pollResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
+                const pollResponse = await fetchWithProxy(`https://api.replicate.com/v1/predictions/${result.id}`, {
                     headers: {
                         'Authorization': `Token ${apiKey}`
                     }
