@@ -948,6 +948,16 @@
 
         // 通过CORS代理发送请求
         async function fetchWithProxy(url, options) {
+            // 检查是否在本地服务器环境
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            if (isLocal) {
+                // 本地服务器环境，直接请求
+                const response = await fetch(url, options);
+                return response;
+            }
+
+            // GitHub Pages环境，使用CORS代理
             // 先尝试直接请求
             try {
                 const response = await fetch(url, options);
@@ -970,7 +980,7 @@
                 }
             }
 
-            throw new Error('所有代理都失败了，请检查网络连接');
+            throw new Error('所有代理都失败了，请检查网络连接或使用本地服务器');
         }
 
         // 调用Replicate API（通过CORS代理）
