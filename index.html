@@ -681,14 +681,19 @@
 
             <!-- AI修图输入框 -->
             <div class="ai-prompt-section" id="aiPromptSection">
-                <label>描述你想做的修改：</label>
-                <textarea id="aiPrompt" placeholder="例如：把天空变成晚霞、让人物微笑、添加一朵花..."></textarea>
+                <label>选择图片风格：</label>
+                <textarea id="aiPrompt" placeholder="选择下方风格，或输入自定义描述"></textarea>
                 <div class="examples">
-                    <span class="example-tag" onclick="setPrompt('把天空变成晚霞')">🌅 晚霞天空</span>
-                    <span class="example-tag" onclick="setPrompt('让人物微笑')">😊 微笑</span>
-                    <span class="example-tag" onclick="setPrompt('添加一些花瓣')">🌸 添加花瓣</span>
-                    <span class="example-tag" onclick="setPrompt('变成油画风格')">🎨 油画风格</span>
+                    <span class="example-tag" onclick="setPrompt('油画风格')">🎨 油画风格</span>
+                    <span class="example-tag" onclick="setPrompt('素描风格')">✏️ 素描风格</span>
+                    <span class="example-tag" onclick="setPrompt('卡通风格')">🎪 卡通风格</span>
+                    <span class="example-tag" onclick="setPrompt('复古风格')">📜 复古风格</span>
+                    <span class="example-tag" onclick="setPrompt('梦幻风格')">🌈 梦幻风格</span>
+                    <span class="example-tag" onclick="setPrompt('艺术风格')">🎭 艺术风格</span>
                 </div>
+                <p style="font-size: 12px; color: #6c757d; margin-top: 10px;">
+                    💡 支持的风格：油画、素描、卡通、复古、梦幻、艺术等
+                </p>
             </div>
 
             <!-- 图片预览 -->
@@ -1126,14 +1131,16 @@
 
             // 将文字描述转换为风格参数
             let style = 'selfie'; // 默认风格
-            if (prompt.includes('油画') || prompt.includes('绘画')) {
+            if (prompt.includes('油画') || prompt.includes('绘画') || prompt.includes('艺术')) {
                 style = 'oil_painting';
-            } else if (prompt.includes('素描') || prompt.includes('铅笔')) {
+            } else if (prompt.includes('素描') || prompt.includes('铅笔') || prompt.includes('黑白')) {
                 style = 'sketch';
-            } else if (prompt.includes('卡通') || prompt.includes('动漫')) {
+            } else if (prompt.includes('卡通') || prompt.includes('动漫') || prompt.includes('可爱')) {
                 style = 'cartoon';
-            } else if (prompt.includes('可爱')) {
-                style = 'cute';
+            } else if (prompt.includes('复古') || prompt.includes('怀旧')) {
+                style = 'retro';
+            } else if (prompt.includes('梦幻') || prompt.includes('童话')) {
+                style = 'fantasy';
             }
 
             const response = await fetchWithProxy(url, {
