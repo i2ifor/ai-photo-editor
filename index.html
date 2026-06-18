@@ -776,6 +776,13 @@
         let batchFiles = [];
         let accessToken = null;
 
+        // CORS代理服务列表（自动尝试）
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+
         // DOM元素
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -944,6 +951,33 @@
             document.getElementById('aiPrompt').value = text;
         }
 
+        // 通过CORS代理发送请求
+        async function fetchWithProxy(url, options) {
+            // 先尝试直接请求
+            try {
+                const response = await fetch(url, options);
+                return response;
+            } catch (e) {
+                // 如果失败，尝试使用CORS代理
+                console.log('Direct fetch failed, trying CORS proxy...');
+            }
+
+            // 尝试CORS代理
+            for (const proxy of CORS_PROXIES) {
+                try {
+                    const proxyUrl = proxy + encodeURIComponent(url);
+                    const response = await fetch(proxyUrl, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                } catch (e) {
+                    console.log(`Proxy ${proxy} failed:`, e);
+                }
+            }
+
+            throw new Error('所有代理都失败了，请检查网络连接');
+        }
+
         // 获取access_token
         async function getAccessToken() {
             const apiKey = apiKeyInput.value.trim();
@@ -967,7 +1001,7 @@
 
             const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`;
 
-            const response = await fetch(url, { method: 'POST' });
+            const response = await fetchWithProxy(url, { method: 'POST' });
             const data = await response.json();
 
             if (data.error) {
@@ -1012,7 +1046,7 @@
                     await processSingleImage();
                 } else {
                     // 批量处理
-                    await processBatch();
+                    await processBatchImages();
                 }
 
             } catch (error) {
@@ -1050,7 +1084,7 @@
         async function enhanceImage(base64Data) {
             const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_enhance?access_token=${accessToken}`;
 
-            const response = await fetch(url, {
+            const response = await fetchWithProxy(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -1069,13 +1103,9 @@
 
         // 图像编辑
         async function editImage(base64Data, prompt) {
-            // 注意：百度AI的图像编辑API可能需要不同的端点
-            // 这里使用通用的图像处理API作为示例
-            // 实际使用时请参考百度AI官方文档
-
             const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_edit?access_token=${accessToken}`;
 
-            const response = await fetch(url, {
+            const response = await fetchWithProxy(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -1092,8 +1122,8 @@
             return data.image;
         }
 
-        // 批量处理
-        async function processBatch() {
+        // 批量处理图片
+        async function processBatchImages() {
             if (batchFiles.length === 0) {
                 showError('没有可处理的图片');
                 return;
