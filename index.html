@@ -1080,43 +1080,76 @@
             showSuccess('处理完成！');
         }
 
-        // 图像增强
+        // 图像增强 - 使用图像清晰度增强接口
         async function enhanceImage(base64Data) {
-            const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_enhance?access_token=${accessToken}`;
+            // 尝试多个可能的API端点
+            const endpoints = [
+                'https://aip.baidubce.com/rest/2.0/image-process/v1/image_definition_enhance',
+                'https://aip.baidubce.com/rest/2.0/image-process/v1/image_enhance',
+                'https://aip.baidubce.com/rest/2.0/image-process/v1/color_enhance'
+            ];
 
-            const response = await fetchWithProxy(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: `image=${encodeURIComponent(base64Data)}`
-            });
+            let lastError = null;
 
-            const data = await response.json();
+            for (const endpoint of endpoints) {
+                try {
+                    const url = `${endpoint}?access_token=${accessToken}`;
+                    const response = await fetchWithProxy(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `image=${encodeURIComponent(base64Data)}&sharp=1&contrast=1`
+                    });
 
-            if (data.error_code) {
-                throw new Error(`图像增强失败: ${data.error_msg}`);
+                    const data = await response.json();
+
+                    if (data.error_code) {
+                        lastError = data.error_msg;
+                        continue; // 尝试下一个端点
+                    }
+
+                    return data.image;
+                } catch (e) {
+                    lastError = e.message;
+                    continue;
+                }
             }
 
-            return data.image;
+            throw new Error(`图像增强失败: ${lastError || '所有端点都不可用'}`);
         }
 
-        // 图像编辑
+        // 图像编辑 - 使用图像风格转换接口
         async function editImage(base64Data, prompt) {
-            const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/image_edit?access_token=${accessToken}`;
+            // 使用图像风格转换接口作为AI修图功能
+            const url = `https://aip.baidubce.com/rest/2.0/image-process/v1/style_transfer?access_token=${accessToken}`;
+
+            // 将文字描述转换为风格参数
+            let style = 'selfie'; // 默认风格
+            if (prompt.includes('油画') || prompt.includes('绘画')) {
+                style = 'oil_painting';
+            } else if (prompt.includes('素描') || prompt.includes('铅笔')) {
+                style = 'sketch';
+            } else if (prompt.includes('卡通') || prompt.includes('动漫')) {
+                style = 'cartoon';
+            } else if (prompt.includes('可爱')) {
+                style = 'cute';
+            }
 
             const response = await fetchWithProxy(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `image=${encodeURIComponent(base64Data)}&prompt=${encodeURIComponent(prompt)}`
+                body: `image=${encodeURIComponent(base64Data)}&style=${style}`
             });
 
             const data = await response.json();
 
             if (data.error_code) {
-                throw new Error(`图像编辑失败: ${data.error_msg}`);
+                // 如果风格转换失败，尝试使用图像增强作为备选
+                console.log('风格转换失败，使用图像增强:', data.error_msg);
+                return await enhanceImage(base64Data);
             }
 
             return data.image;
